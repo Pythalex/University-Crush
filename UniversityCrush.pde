@@ -1,9 +1,19 @@
 // score
-int score = 900;
+int score = 0;
 int maxscore = 1000;
 float scoreHeight;
 float scoreScale;
 int coups = 0;
+int coups_restants = 20;
+int gameState = 0; // 0 - jeu en cours; 1 - win; 2 = loose;
+PImage Winimage;
+PImage Loseimage;
+int seuil1 = maxscore/4;
+int seuil2 = maxscore/2;
+int seuil3 = 3*maxscore/4;
+boolean seuil1_franchi = false;
+boolean seuil2_franchi = false;
+boolean seuil3_franchi = false;
 
 int gridW, gridH;
 int cellWidth, cellHeight;
@@ -329,18 +339,22 @@ PImage traitement_bg(PImage bg) {
   return bg;
 }
 
-void Endgame(){
-  PImage image = loadImage("End.png");
-  background(image);
+void endGame(){
+  while(!(keyPressed && (key == 10 || keyCode == ENTER))){
+    println("endgame while loop");
+  }
   exit();
 }
 
 
 void setup() {
+  
   size(900, 680);
   //T 2.7
   bg = loadImage("BG.png");
   bg = traitement_bg(bg); // Rend le fond d'écran en semi-NB
+  Winimage = loadImage("End.png");
+  Loseimage = loadImage("Lose.png");
 
   // intitialisation des variables
   leftMargin = width/10;
@@ -778,15 +792,37 @@ int crush(int i, int j) {
   return crushed;
 }// crush()
 
+void coups_effectue(){
+ coups++;
+}
 
 void draw() {
   
+  /* CONDITIONS DE FIN DE JEU
+  if(endGameState)
+    endGame();
   if (score > maxscore){
-    Endgame();
+    
+    
+    endGameState = true;
+    redraw();
+  }*/
+  
+  // changements de phases de jeu
+  if (score > maxscore && gameState == 0 && !animRunning){
+    gameState = 1;
+  }
+  if(!(coups_restants-coups > 0) && gameState == 0 && !animRunning) {
+    if(seuil2_franchi)
+      gameState = 1;
+    else if(seuil1_franchi)
+      gameState = 1;
+    else 
+      gameState = 2;
   }
 
+  if(gameState == 0){
   background(bg);
-
   imageMode(CENTER);
   stroke(0, 0, 0);
   textAlign(CENTER, CENTER);
@@ -799,32 +835,51 @@ void draw() {
   // Affichage du score
   fill(0,0,0,255);
   rect(width/2 - 30, 0, width, topMargin);
-  textSize(25);
+  textSize(22);
   fill(0, 150, 200, 204);
-  text("SCORE : ", width/2 + width/15, height/50);
+  text("SCORE : ", width/2 + width/20, height/50);
   fill(255,255,255,255);
   textAlign(LEFT, CENTER);
   text(score, width/2 + textWidth("SCORE : ") + width/100, height/50);
   
   // Affichage du nombre de coups
   fill(0, 150, 200, 204);
-  text("COUPS : ", width/2 + width/15 + textWidth("SCORE : ") + width/100 + textWidth(char(score)) + width/80, height/50);
+  text("COUPS RESTANTS : ", width/2 + width/15 + textWidth("SCORE : ") + width/100 + textWidth(char(score)) + width/80, height/50);
   fill(255,255,255,255);
-  text(coups, width/2 + width/15 + textWidth("SCORE : ") + width/100 + textWidth(char(score)) + width/80 + textWidth("COUPS : ") + width/100, height/50);
+  text(coups_restants - coups, width/2 + width/15 + textWidth("SCORE : ") + width/100 + textWidth(char(score)) + width/80 + textWidth("COUPS RESTANTS : ") + width/100, height/50);
   
   // Score à atteindre jauge
   fill(0,0,0,255);
   rect(width/60, height/6, width/15, 3*height/4);
   
   // Score atteint en barre
-  fill(255,0,0,255);
+  if(seuil3_franchi)
+    fill(230,120,0,255);
+  else if(seuil2_franchi)
+    fill(200,150,0,255);
+  else if(seuil1_franchi)
+    fill(100,100,255,255);
+  else
+    fill(50,255,50,255);
   scoreHeight = score/scoreScale;
   rect(width/60, 11*height/12-scoreHeight, width/15, scoreHeight);
   
+  // seuils
+  fill(255,180,0,160);
+  float seuilHeight = seuil3/scoreScale;
+  rect(width/60, 11*height/12-seuilHeight, width/15, (11*height/12 - height/6) / 60);
+  seuilHeight = seuil2/scoreScale;
+  fill(255,210,0,160);
+  rect(width/60, 11*height/12-seuilHeight, width/15, (11*height/12 - height/6) / 60);
+  seuilHeight = seuil1/scoreScale;
+  fill(255,255,0,160);
+  rect(width/60, 11*height/12-seuilHeight, width/15, (11*height/12 - height/6) / 60);
+  
   // Score max
-  textSize((width/120)/(textWidth(char(maxscore)))*(width/20));
+  textSize((width/120)/(textWidth(char(maxscore)))*(width/25));
   fill(255,255,255,255);
-  text(maxscore, width/55, height/5);
+  textMode(CENTER);
+  text(maxscore, width/50, height/5);
   
   // dessin de la grille
   // T2.1
@@ -1111,6 +1166,55 @@ void draw() {
 
   if (crushed>0) updateGrid();
   if (created>0 && !animRunning) redraw();
+  }// Affichage de jeu == gameState = 1
+  
+  else if (gameState == 1) { // Win
+    background(Winimage);
+    fill(255,255,255,255);
+    float Height = height/8;
+    float space = width/50;
+    if (score >= maxscore) {
+      text("Vous avez réussi à atteindre le score max :", width/4, Height);
+      text(maxscore, width/4 + textWidth("Vous avez réussi à atteindre le score max : ") + space, Height);
+    }
+    else if (seuil3_franchi) {
+      text("Vous avez franchi le 3eme seuil avec en score :", width/4, Height);
+      text(score, width/4 + textWidth("Vous avez franchi le 3eme seuil avec en score :") + space, Height);
+    }
+    else if (seuil2_franchi) {
+      text("Vous avez franchi le 2eme seuil avec en score :", width/4, Height);
+      text(score, width/4 + textWidth("Vous avez franchi le 2eme seuil avec en score :") + space, Height);
+    }
+    else if (seuil1_franchi) {
+      text("Vous avez franchi le 1er seuil avec en score :", width/4, Height);
+      text(score, width/4 + textWidth("Vous avez franchi le 1er seuil avec en score :") + space, Height);
+    }
+    else {
+      text("Erreur de seuil", width/4, Height);
+    }
+      
+    text(" avec", width/3, 1.5 * Height);
+    text(coups_restants - coups, width/3 + textWidth(" avec") + space, 1.5 * Height);
+    text(" coups restants", width/3 + textWidth(" avec") + space + textWidth(char(coups_restants - coups)) + space, 1.5 * Height);
+    if(sin(frameCount/10) > 0)
+      text("APPUYEZ SUR N'IMPORTE QUELLE TOUCHE POUR QUITTER", width/5, 2 * Height);
+  }
+  
+  else if (gameState == 2) { // Lose
+    background(Loseimage);
+    fill(255,50,50,255);
+    float Height = height/8;
+    float space = width/50;
+    text("GAME OVER : Vous avez perdu avec un score de :", width/4, Height);
+    text(score, width/4 + textWidth("GAME OVER : Vous avez perdu avec un score de :") + space, Height);
+    if(sin(frameCount/10) > 0)
+      text("APPUYEZ SUR N'IMPORTE QUELLE TOUCHE POUR QUITTER", width/4.5, 1.5 * Height);
+  }
+  
+  else {
+    exit();
+  }
+  
 }// draw()
 
 
@@ -1148,6 +1252,12 @@ void mouseReleased() {
   cellDY = -1;
   int cellRX = (mouseX-leftMargin)/cellWidth;
   int cellRY = (mouseY-topMargin)/cellHeight;
+  if(score > seuil1 && !seuil1_franchi)
+    seuil1_franchi = true;
+  if(score > seuil2 && !seuil2_franchi)
+    seuil2_franchi = true;
+  if(score > seuil3 && !seuil3_franchi)
+    seuil3_franchi = true;
   if (cellCX>=0 && cellCX<gridW && cellCY>=0 && cellCY<gridH && 
     cellRX>=0 && cellRX<gridW && cellRY>=0 && cellRY<gridH) {
     if (abs(cellRX-cellCX)+abs(cellRY-cellCY)==1 ) {
@@ -1160,18 +1270,18 @@ void mouseReleased() {
 
       // Boule en chocolat jetee sur un bonbon simple
       if (grid[cellRY][cellRX]>=4*maxElemTypes && grid[cellCY][cellCX]<maxElemTypes && grid[cellCY][cellCX]!=EMPTY) {
-        coups++; 
+        coups_effectue(); 
         startAnim(20, LASER, cellRX, cellRY, cellCX, cellCY);
         return;
       } else if (grid[cellCY][cellCX]>=4*maxElemTypes && grid[cellRY][cellRX]<maxElemTypes && grid[cellRY][cellRX]!=EMPTY) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, LASER, cellCX, cellCY, cellRX, cellRY);
         return;
       }
 
       // deux boules en chocolat l'une sur l'autre
       if (grid[cellRY][cellRX]>=4*maxElemTypes && grid[cellCY][cellCX]>=4*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(gridW*gridH, SUPERLASER, cellRX, cellRY, cellCX, cellCY);
         println("SL");
         return;
@@ -1179,22 +1289,22 @@ void mouseReleased() {
 
       // une boule en chocolat sur un sachet
       if (grid[cellRY][cellRX]>=4*maxElemTypes && grid[cellCY][cellCX]>=3*maxElemTypes && grid[cellCY][cellCX]<4*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, DOUBLELASER, cellRX, cellRY, cellCX, cellCY);
         return;
       } else if (grid[cellRY][cellRX]>=3*maxElemTypes && grid[cellCY][cellCX]>=4*maxElemTypes && grid[cellRY][cellRX]<4*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, DOUBLELASER, cellCX, cellCY, cellRX, cellRY);
         return;
       }
 
       // une boule en chocolat sur un bonbon raye
       if (grid[cellRY][cellRX]>=4*maxElemTypes && grid[cellCY][cellCX]>=2*maxElemTypes && grid[cellCY][cellCX]<3*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, ALLSTRIP, cellRX, cellRY, cellCX, cellCY);
         return;
       } else if (grid[cellRY][cellRX]>=2*maxElemTypes && grid[cellCY][cellCX]>=4*maxElemTypes && grid[cellRY][cellRX]<3*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, ALLSTRIP, cellCX, cellCY, cellRX, cellRY);
         return;
       }
@@ -1202,7 +1312,7 @@ void mouseReleased() {
 
       // sachet sur sachet
       if (grid[cellRY][cellRX]>=3*maxElemTypes && grid[cellRY][cellRX]<4*maxElemTypes && grid[cellCY][cellCX]>=3*maxElemTypes && grid[cellCY][cellCX]<4*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, SQDBLBOOM, cellRX, cellRY, -1, -1);
         //grid[cellRY][cellRX] = EMPTY;
         //grid[cellCY][cellCX] = EMPTY;
@@ -1211,7 +1321,7 @@ void mouseReleased() {
 
       // raye sur raye
       if (grid[cellRY][cellRX]>=1*maxElemTypes && grid[cellRY][cellRX]<3*maxElemTypes && grid[cellCY][cellCX]>=1*maxElemTypes && grid[cellCY][cellCX]<3*maxElemTypes) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, STARCROSS, cellRX, cellRY, -1, -1);
         //grid[cellRY][cellRX] = EMPTY;
         //grid[cellCY][cellCX] = EMPTY;
@@ -1220,7 +1330,7 @@ void mouseReleased() {
       // raye sur sachet ou vice-versa
       if ((grid[cellRY][cellRX]>=1*maxElemTypes && grid[cellRY][cellRX]<3*maxElemTypes && grid[cellCY][cellCX]>=3*maxElemTypes && grid[cellCY][cellCX]<4*maxElemTypes) ||
         (grid[cellRY][cellRX]>=3*maxElemTypes && grid[cellRY][cellRX]<4*maxElemTypes && grid[cellCY][cellCX]>=1*maxElemTypes && grid[cellCY][cellCX]<3*maxElemTypes)) {
-        coups++; 
+        coups_effectue();  
         startAnim(20, BIGBONBON, cellRX, cellRY, cellCX, cellCY);
         //grid[cellRY][cellRX] = EMPTY;
         //grid[cellCY][cellCX] = EMPTY;
@@ -1238,7 +1348,7 @@ void mouseReleased() {
           crushed += crush(cellRX, cellRY);
         }
         if (crushed>0 && animType==NONE) {
-          coups++; 
+          coups_effectue();  
           updateGrid();
         } else {
           // le coup etait interdit car il ne detruit rien !
@@ -1250,4 +1360,9 @@ void mouseReleased() {
     }
   }
   redraw();
+}
+
+void keyPressed(){
+  if((gameState == 1 || gameState == 2))
+    exit();
 }
