@@ -43,6 +43,7 @@ int accumulateurChute = 1;
 
 int animType        = NONE;
 int animCount       = 0;
+int animCountRaye   = 50;
 int EMPTY           = -1;
 // infos utiles pour afficher l'animation
 int animi=-1, animj=-1;   // l'endroit ou on declenche l'animation
@@ -542,12 +543,14 @@ void stopAnim() {
           eat(i0, j0);
         }
     } else if (aT==STARCROSS) {
+      score += 70;
       grid[animj][animi] = EMPTY;
       for (int j0=0; j0<gridH; j0++)
         eat(animi, j0);
       for (int i0=0; i0<gridW; i0++)
         eat(i0, animj);
     } else if (aT==BIGBONBON) {
+      score += 80;
       grid[animj][animi] = EMPTY;
       grid[animj2][animi2] = EMPTY;
       for (int j0=0; j0<gridH; j0++)
@@ -714,10 +717,10 @@ void eat(int i, int j) {
   } else if (old<maxElemTypes) {
     grid[j][i] = EMPTY;
   } else if (old<2*maxElemTypes){
-    startAnim(20, HORI, i, j, -1, -1);
+    startAnim(animCountRaye, HORI, i, j, -1, -1);
   }
   else if (old<3*maxElemTypes) {
-    startAnim(20, VERT, i, j, -1, -1);
+    startAnim(animCountRaye, VERT, i, j, -1, -1);
   }
   else if (old<4*maxElemTypes) {
     startAnim(20, SQBOOM, i, j, -1, -1);
@@ -798,27 +801,17 @@ void coups_effectue(){
 
 void draw() {
   
-  /* CONDITIONS DE FIN DE JEU
-  if(endGameState)
-    endGame();
-  if (score > maxscore){
-    
-    
-    endGameState = true;
-    redraw();
-  }*/
-  
   // changements de phases de jeu
   if (score > maxscore && gameState == 0 && !animRunning){
-    gameState = 1;
+    gameState = 1; // Full win
   }
   if(!(coups_restants-coups > 0) && gameState == 0 && !animRunning) {
     if(seuil2_franchi)
-      gameState = 1;
+      gameState = 1; // Win seuil 2
     else if(seuil1_franchi)
-      gameState = 1;
+      gameState = 1; // Win seuil 3
     else 
-      gameState = 2;
+      gameState = 2; // Lose
   }
 
   if(gameState == 0){
@@ -995,12 +988,6 @@ void draw() {
     updateGrid();
   }
   if ((animType==HORI || animType==ALLSTRIP2) && animCount>0) {
-    //T3.1 remplacer ce dessin de cercles 
-    float starti    = leftMargin+animi*cellWidth+cellWidth/2;
-    float startj    = topMargin+animj*cellHeight+cellHeight/2;
-    animCount--;
-    arc(starti, startj, 80, 80, 0, 2*PI*animCount/20, PIE); // T3.1
-
     //T3.1 remplacer ce dessin du bonbon raye 
     int type  = grid[animj][animi]%maxElemTypes;
     int bonus = grid[animj][animi]/maxBonusTypes;
@@ -1008,13 +995,19 @@ void draw() {
     translate( leftMargin+animi*cellWidth+cellWidth/2, topMargin+animj*cellHeight+cellHeight/2);
     image(imgs[bonus+1][type], 0, 0);
     popMatrix();
+    
+    //T3.1 remplacer ce dessin de cercles 
+    stroke(255,255,255,0);
+    float starti    = leftMargin+animi*cellWidth+cellWidth/2;
+    float startj    = topMargin+animj*cellHeight+cellHeight/2;
+    fill(255,0,0,((animCountRaye - animCount)/(float)animCountRaye)*180);
+    animCount--;
+    //arc(starti, startj, 80, 80, 0, 2*PI*animCount/20, PIE); // T3.1 
+    //int x = (int)(starti - cellWidth/2);
+    //int y = (int)(startj - cellHeight/2);
+    ellipse(starti, startj, cellWidth, cellHeight);
+    
   } else if ((animType==VERT || animType==ALLSTRIP3) && animCount>0) {
-    //T3.1 remplacer ce dessin de cercles 
-    float starti    = leftMargin+animi*cellWidth+cellWidth/2;
-    float startj    = topMargin+animj*cellHeight+cellHeight/2;
-    animCount--;
-    arc(starti, startj, 80, 80, 0, 2*PI*animCount/20, PIE); //T3.1
-
     //T3.1 remplacer ce dessin du bonbon raye 
     int type  = grid[animj][animi]%maxElemTypes;
     int bonus = grid[animj][animi]/maxBonusTypes;
@@ -1022,6 +1015,17 @@ void draw() {
     translate( leftMargin+animi*cellWidth+cellWidth/2, topMargin+animj*cellHeight+cellHeight/2);
     image(imgs[bonus+1][type], 0, 0);
     popMatrix();
+    
+    //T3.1 remplacer ce dessin de cercles 
+    stroke(255,255,255,0);
+    float starti    = leftMargin+animi*cellWidth+cellWidth/2;
+    float startj    = topMargin+animj*cellHeight+cellHeight/2;
+    fill(255,0,0,((animCountRaye - animCount)/(float)animCountRaye)*180);
+    animCount--;
+    //int x = (int)(starti - cellWidth/2);
+    //int y = (int)(startj - cellHeight/2);
+    ellipse(starti, startj, cellWidth, cellHeight);
+    
   } else if ((animType==LASER || animType==DOUBLELASER) && animCount>0) {
     int starti    = leftMargin+animi*cellWidth+cellWidth/2;
     int startj    = topMargin+animj*cellHeight+cellHeight/2;
